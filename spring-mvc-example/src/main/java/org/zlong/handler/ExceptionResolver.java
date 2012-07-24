@@ -1,7 +1,7 @@
 /**
  * 
  */
-package org.zlong.annotation;
+package org.zlong.handler;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

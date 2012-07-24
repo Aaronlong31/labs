@@ -1,5 +1,8 @@
 package org.zlong.handler;
 
+import javax.xml.bind.annotation.XmlRootElement;
+
+@XmlRootElement
 public class ErrorBody {
 
 	private int errorCode;

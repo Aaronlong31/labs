@@ -8,6 +8,7 @@ repositories {
 
 dependencies{
 	compile 'org.springframework:spring-webmvc:3.1.0.RELEASE'
+	compile 'org.springframework:spring-oxm:3.1.0.RELEASE'
 	compile 'org.hibernate:hibernate-validator:4.3.0.Final'
 	compile 'javax.servlet:servlet-api:2.4'
 	compile 'org.aspectj:aspectjrt:1.6.12'
