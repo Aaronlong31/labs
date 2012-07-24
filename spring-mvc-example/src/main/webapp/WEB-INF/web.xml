@@ -4,15 +4,6 @@
 	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
 	id="WebApp_ID" version="3.0">
 	<display-name>spring-mvc-example</display-name>
-
-	<context-param>
-		<param-name>contextConfigLocation</param-name>
-		<param-value>classpath:applicationContext.xml</param-value>
-	</context-param>
-
-	<listener>
-		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
-	</listener>
 	
 	<servlet>
 		<servlet-name>main</servlet-name>

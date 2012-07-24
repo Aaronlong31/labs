@@ -16,7 +16,7 @@ import org.springframework.http.HttpStatus;
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ExceptionProcessor {
+public @interface MapEntry {
 
 	public Class<? extends Exception>[] exceptions();
 	

@@ -11,15 +11,12 @@ import org.hibernate.validator.constraints.NotBlank;
  */
 public class User {
 
-	public interface Add {
-	};
-
 	private int id;
 
-	@NotBlank(groups = Add.class, message = "User name cann't be blank")
+	@NotBlank(message = "User name cann't be blank")
 	private String name;
 
-	@NotBlank(groups = Add.class, message = "Password cann't be blank")
+	@NotBlank(message = "Password cann't be blank")
 	private String password;
 
 	private int age;

@@ -17,5 +17,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ExceptionResolver {
 
-	public ExceptionProcessor[] value();
+	public MapEntry[] value();
 }
