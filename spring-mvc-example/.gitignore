@@ -5,3 +5,7 @@
 /.project
 /.springBeans
 /bin
+/*.iml
+/*.ipr
+/*.iws
+/*.swp
