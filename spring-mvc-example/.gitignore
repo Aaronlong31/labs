@@ -17,6 +17,7 @@
 /.gradle
 
 #jrebel
+rebel.xml
 
 /.springBeans
 /*.swp

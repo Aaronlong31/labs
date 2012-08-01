@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package org.zlong.handler;
 
@@ -13,10 +13,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJacksonHttpMessageConverter;
-import org.springframework.http.converter.xml.MarshallingHttpMessageConverter;
+import org.springframework.http.converter.xml.SourceHttpMessageConverter;
 import org.springframework.http.converter.xml.XmlAwareFormHttpMessageConverter;
 import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.http.server.ServletServerHttpResponse;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.context.request.ServletWebRequest;
@@ -35,130 +36,144 @@ import java.util.List;
 
 /**
  * @author zhanglong
- * 
  */
 public class AnnotationHandlerExceptionResolver implements
-		HandlerExceptionResolver {
+        HandlerExceptionResolver {
 
-	private static Logger logger = LoggerFactory
-			.getLogger(AnnotationHandlerExceptionResolver.class);
+    private static Logger logger = LoggerFactory
+            .getLogger(AnnotationHandlerExceptionResolver.class);
 
-	private List<HttpMessageConverter<?>> messageConverters;
+    private List<HttpMessageConverter<?>> messageConverters;
 
-	/**
-	 * Default constructor.
-	 */
-	public AnnotationHandlerExceptionResolver() {
+    /**
+     * Default constructor.
+     */
+    public AnnotationHandlerExceptionResolver() {
 
-		StringHttpMessageConverter stringHttpMessageConverter = new StringHttpMessageConverter();
-		stringHttpMessageConverter.setWriteAcceptCharset(false); // See SPR-7316
-		this.messageConverters = new ArrayList<HttpMessageConverter<?>>();
-		this.messageConverters.add(new MappingJacksonHttpMessageConverter());
-		this.messageConverters.add(new XmlAwareFormHttpMessageConverter());
-		this.messageConverters.add(new MarshallingHttpMessageConverter());
-	}
 
-	@Override
-	public ModelAndView resolveException(HttpServletRequest request,
-			HttpServletResponse response, Object handler, Exception ex) {
+    }
 
-		HandlerMethod handlerMethod = (HandlerMethod) handler;
-		ExceptionResolver exceptionResolver = handlerMethod
-				.getMethodAnnotation(ExceptionResolver.class);
-		MapEntry exceptionProcessor = getExceptionProcessor(exceptionResolver,
-				ex);
+    public void init() {
+        if (CollectionUtils.isEmpty(messageConverters)) {
+            StringHttpMessageConverter stringHttpMessageConverter = new StringHttpMessageConverter();
+            stringHttpMessageConverter.setWriteAcceptCharset(false); // See SPR-7316
+            this.messageConverters = new ArrayList<HttpMessageConverter<?>>();
+            this.messageConverters.add(new MappingJacksonHttpMessageConverter());
+            this.messageConverters.add(stringHttpMessageConverter);
+            this.messageConverters.add(new SourceHttpMessageConverter());
+            this.messageConverters.add(new XmlAwareFormHttpMessageConverter());
+        }
+    }
 
-		if (exceptionProcessor == null) {
-			return null;
-		}
+    @Override
+    public ModelAndView resolveException(HttpServletRequest request,
+                                         HttpServletResponse response, Object handler, Exception ex) {
 
-		ServletWebRequest webRequest = new ServletWebRequest(request, response);
-		try {
-			return getModelAndView(handlerMethod.getMethod(), webRequest,
-					exceptionProcessor, ex);
-		} catch (Exception e) {
-			logger.error("Invoking request method resulted in exception : "
-					+ handlerMethod, e);
-		}
+        HandlerMethod handlerMethod = (HandlerMethod) handler;
+        ExceptionResolver exceptionResolver = handlerMethod
+                .getMethodAnnotation(ExceptionResolver.class);
+        MapEntry exceptionProcessor = getExceptionProcessor(exceptionResolver,
+                ex);
 
-		return null;
-	}
+        if (exceptionProcessor == null) {
+            return null;
+        }
 
-	private MapEntry getExceptionProcessor(ExceptionResolver exceptionResolver,
-			Exception ex) {
+        ServletWebRequest webRequest = new ServletWebRequest(request, response);
+        try {
+            return getModelAndView(handlerMethod.getMethod(), webRequest,
+                    exceptionProcessor, ex);
+        } catch (Exception e) {
+            logger.error("Invoking request method resulted in exception : "
+                    + handlerMethod, e);
+        }
 
-		if (exceptionResolver == null) {
-			return null;
-		}
-		MapEntry[] exceptionProcessors = exceptionResolver.value();
+        return null;
+    }
 
-		for (MapEntry exceptionProcessor : exceptionProcessors) {
-			Class<? extends Exception>[] handlerExceptions = exceptionProcessor
-					.exceptions();
-			for (Class<? extends Exception> handlerException : handlerExceptions) {
-				if (handlerException.isInstance(ex)) {
-					return exceptionProcessor;
-				}
-			}
-		}
-		return null;
-	}
+    private MapEntry getExceptionProcessor(ExceptionResolver exceptionResolver,
+                                           Exception ex) {
 
-	private ModelAndView getModelAndView(Method handlerMethod,
-			ServletWebRequest webRequest, MapEntry exceptionProcessor,
-			Exception ex) throws Exception {
+        if (exceptionResolver == null) {
+            return null;
+        }
+        MapEntry[] exceptionProcessors = exceptionResolver.value();
 
-		HttpStatus responseStatus = exceptionProcessor.httpStatus();
-		webRequest.getResponse().setStatus(responseStatus.value());
+        for (MapEntry exceptionProcessor : exceptionProcessors) {
+            Class<? extends Exception>[] handlerExceptions = exceptionProcessor
+                    .exceptions();
+            for (Class<? extends Exception> handlerException : handlerExceptions) {
+                if (handlerException.isInstance(ex)) {
+                    return exceptionProcessor;
+                }
+            }
+        }
+        return null;
+    }
 
-		ErrorBody returnValue = new ErrorBody();
-		returnValue.setErrorCode(responseStatus.value());
+    private ModelAndView getModelAndView(Method handlerMethod,
+                                         ServletWebRequest webRequest, MapEntry exceptionProcessor,
+                                         Exception ex) throws Exception {
 
-		String message = StringUtils.hasText(exceptionProcessor.message()) ? exceptionProcessor
-				.message() : ex.getMessage();
-		returnValue.setMessage(message);
+        HttpStatus responseStatus = exceptionProcessor.httpStatus();
+        webRequest.getResponse().setStatus(responseStatus.value());
 
-		if (returnValue != null
-				&& AnnotationUtils.findAnnotation(handlerMethod,
-						ResponseBody.class) != null) {
-			return handleResponseBody(returnValue, webRequest);
-		}
+        ErrorBody returnValue = new ErrorBody();
+        returnValue.setErrorCode(responseStatus.value());
 
-		throw new IllegalArgumentException(
-				"Invalid handler method return value: " + returnValue);
-	}
+        String message = StringUtils.hasText(exceptionProcessor.message()) ? exceptionProcessor
+                .message() : ex.getMessage();
+        returnValue.setMessage(message);
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private ModelAndView handleResponseBody(Object returnValue,
-			ServletWebRequest webRequest) throws ServletException, IOException {
+        if (returnValue != null
+                && AnnotationUtils.findAnnotation(handlerMethod,
+                ResponseBody.class) != null) {
+            return handleResponseBody(returnValue, webRequest);
+        }
 
-		HttpInputMessage inputMessage = new ServletServerHttpRequest(
-				webRequest.getRequest());
-		List<MediaType> acceptedMediaTypes = inputMessage.getHeaders()
-				.getAccept();
-		if (acceptedMediaTypes.isEmpty()) {
-			acceptedMediaTypes = Collections.singletonList(MediaType.ALL);
-		}
-		MediaType.sortByQualityValue(acceptedMediaTypes);
-		HttpOutputMessage outputMessage = new ServletServerHttpResponse(
-				webRequest.getResponse());
-		Class<?> returnValueType = returnValue.getClass();
-		if (this.messageConverters != null) {
-			for (MediaType acceptedMediaType : acceptedMediaTypes) {
-				for (HttpMessageConverter messageConverter : this.messageConverters) {
-					if (messageConverter.canWrite(returnValueType,
-							acceptedMediaType)) {
-						messageConverter.write(returnValue, acceptedMediaType,
-								outputMessage);
-						return new ModelAndView();
-					}
-				}
-			}
-		}
-		if (logger.isWarnEnabled()) {
-			logger.warn("Could not find HttpMessageConverter that supports return type ["
-					+ returnValueType + "] and " + acceptedMediaTypes);
-		}
-		return null;
-	}
+        throw new IllegalArgumentException(
+                "Invalid handler method return value: " + returnValue);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private ModelAndView handleResponseBody(Object returnValue,
+                                            ServletWebRequest webRequest) throws ServletException, IOException {
+
+        HttpInputMessage inputMessage = new ServletServerHttpRequest(
+                webRequest.getRequest());
+        List<MediaType> acceptedMediaTypes = inputMessage.getHeaders()
+                .getAccept();
+        if (acceptedMediaTypes.isEmpty()) {
+            acceptedMediaTypes = Collections.singletonList(MediaType.ALL);
+        }
+        MediaType.sortByQualityValue(acceptedMediaTypes);
+        HttpOutputMessage outputMessage = new ServletServerHttpResponse(
+                webRequest.getResponse());
+        Class<?> returnValueType = returnValue.getClass();
+        if (this.messageConverters != null) {
+            for (MediaType acceptedMediaType : acceptedMediaTypes) {
+                for (HttpMessageConverter messageConverter : this.messageConverters) {
+                    if (messageConverter.canWrite(returnValueType,
+                            acceptedMediaType)) {
+                        messageConverter.write(returnValue, acceptedMediaType,
+                                outputMessage);
+                        return new ModelAndView();
+                    }
+                }
+            }
+        }
+        if (logger.isWarnEnabled()) {
+            logger.warn("Could not find HttpMessageConverter that supports return type ["
+                    + returnValueType + "] and " + acceptedMediaTypes);
+        }
+        return null;
+    }
+
+    public List<HttpMessageConverter<?>> getMessageConverters() {
+        return messageConverters;
+    }
+
+    public void setMessageConverters(List<HttpMessageConverter<?>> messageConverters) {
+        this.messageConverters = messageConverters;
+    }
 }

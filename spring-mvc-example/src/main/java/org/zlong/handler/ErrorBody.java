@@ -1,28 +1,31 @@
 package org.zlong.handler;
 
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement
+@XmlRootElement(name = "Error")
 public class ErrorBody {
 
-	private int errorCode;
+    private int errorCode;
 
-	private String message;
+    private String message;
 
-	public int getErrorCode() {
-		return errorCode;
-	}
+    @XmlElement
+    public int getErrorCode() {
+        return errorCode;
+    }
 
-	public void setErrorCode(int errorCode) {
-		this.errorCode = errorCode;
-	}
+    public void setErrorCode(int errorCode) {
+        this.errorCode = errorCode;
+    }
 
-	public String getMessage() {
-		return message;
-	}
+    @XmlElement
+    public String getMessage() {
+        return message;
+    }
 
-	public void setMessage(String message) {
-		this.message = message;
-	}
+    public void setMessage(String message) {
+        this.message = message;
+    }
 
 }
